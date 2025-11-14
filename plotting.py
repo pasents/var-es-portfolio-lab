@@ -14,7 +14,8 @@ def plot_portfolio_var_es(returns_df,
                           weights,
                           conf_level=0.95,
                           horizon_days=1,
-                          bins=60):
+                          bins=60,
+                          save_path=None):
     """
     Plot portfolio return distribution with VaR & ES lines.
 
@@ -23,6 +24,7 @@ def plot_portfolio_var_es(returns_df,
     conf_level : e.g. 0.95 or 0.99
     horizon_days : holding period
     bins       : number of histogram bins
+    save_path  : optional filepath to save the figure (PNG, etc.)
     """
 
     # --- Portfolio returns ---
@@ -39,11 +41,11 @@ def plot_portfolio_var_es(returns_df,
     )
 
     var_value = res.loc[conf_level, "VaR"]
-    es_value  = res.loc[conf_level, "ES"]
+    es_value = res.loc[conf_level, "ES"]
 
     # Convert to return levels
     var_cut = -var_value
-    es_cut  = -es_value
+    es_cut = -es_value
 
     # --- Plot histogram ---
     plt.figure(figsize=(10, 6))
@@ -65,8 +67,13 @@ def plot_portfolio_var_es(returns_df,
     plt.grid(alpha=0.2)
 
     plt.tight_layout()
-    plt.show()
 
+    # Save if requested
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+
+    plt.show()
+    plt.close()
 
 
 # ============================================================
@@ -80,7 +87,8 @@ def plot_sharpe_vs_es_frontier(returns_df,
                                risk_free_rate=0.0,
                                annualization_factor=252,
                                es_opt_weights=None,
-                               sharpe_opt_weights=None):
+                               sharpe_opt_weights=None,
+                               save_path=None):
     """
     ES–Sharpe frontier using random long-only portfolios.
 
@@ -91,6 +99,7 @@ def plot_sharpe_vs_es_frontier(returns_df,
     risk_free_rate : annual RF (0 default)
     es_opt_weights : optional (highlight ES-opt)
     sharpe_opt_weights : optional (highlight Sharpe-opt)
+    save_path  : optional filepath to save the figure
     """
 
     n_assets = returns_df.shape[1]
@@ -181,7 +190,18 @@ def plot_sharpe_vs_es_frontier(returns_df,
     plt.grid(alpha=0.2)
     plt.legend()
     plt.tight_layout()
+
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+
     plt.show()
+    plt.close()
+
+
+# ============================================================
+# 3) Plot historical vs simulated frontier on the same plot
+# ============================================================
+
 def plot_hist_vs_sim_frontier(returns_hist,
                               returns_sim,
                               n_portfolios=2000,
@@ -190,7 +210,8 @@ def plot_hist_vs_sim_frontier(returns_hist,
                               risk_free_rate=0.0,
                               annualization_factor=252,
                               es_opt_weights=None,
-                              sharpe_opt_weights=None):
+                              sharpe_opt_weights=None,
+                              save_path=None):
     """
     Compare ES–Sharpe frontier for historical vs simulated returns
     on a single plot.
@@ -199,13 +220,14 @@ def plot_hist_vs_sim_frontier(returns_hist,
     returns_sim  : DataFrame of simulated returns (same columns)
     es_opt_weights, sharpe_opt_weights : typically the optimals
                                          from the SIMULATED world.
+    save_path  : optional filepath to save the figure
     """
 
     n_assets = returns_hist.shape[1]
     rf_daily = risk_free_rate / annualization_factor
 
     es_hist_list, sharpe_hist_list = [], []
-    es_sim_list,  sharpe_sim_list  = [], []
+    es_sim_list, sharpe_sim_list = [], []
 
     # 1) Sample random long-only weights
     weights_mat = np.random.dirichlet(np.ones(n_assets), size=n_portfolios)
@@ -267,8 +289,6 @@ def plot_hist_vs_sim_frontier(returns_hist,
                 alpha=0.35, s=10, label="Simulated (Student-t)", color="C1")
 
     # ES-optimal / Sharpe-optimal from SIMULATED world
-    rf_daily = risk_free_rate / annualization_factor
-
     if es_opt_weights is not None:
         port_es = returns_sim.dot(es_opt_weights).dropna()
         mu_es = port_es.mean()
@@ -311,4 +331,9 @@ def plot_hist_vs_sim_frontier(returns_hist,
     plt.grid(alpha=0.2)
     plt.legend()
     plt.tight_layout()
+
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+
     plt.show()
+    plt.close()

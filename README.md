@@ -1,82 +1,165 @@
-# VaR & Expected Shortfall Portfolio Lab
+# 📊 VaR & Expected Shortfall Portfolio Lab
+*A quantitative risk-modelling project comparing historical vs heavy-tailed Monte Carlo tail risk.*
 
-Python project to learn and demonstrate **market risk** concepts using a
-3-asset portfolio: **Bitcoin (BTC/EUR), Gold (EUR), and IWDA (MSCI World ETF)**.
-
-The project estimates **historical** and **Monte Carlo (Student-t)**:
-- Value at Risk (VaR)
-- Expected Shortfall (ES, a.k.a. CVaR)
-- ES–Sharpe efficient frontiers
-- Optimal portfolios (ES-minimizing and Sharpe-maximizing)
+<p align="center">
+  <img src="figures/frontier_compare.png" width="650">
+</p>
 
 ---
 
-## Features
+## 🎯 Overview
 
-### 1. Data loader (`data_loader.py`)
-- Downloads price data from Yahoo Finance:
-  - `BTC-EUR` – Bitcoin in EUR  
-  - `GC=F` – Gold futures in USD (converted to EUR using `EURUSD=X`)  
-  - `IWDA.AS` – iShares Core MSCI World UCITS ETF (EUR)
-- Converts Gold prices from USD to EUR.
-- Computes **daily log returns** for all three assets.
+This project demonstrates practical **market risk modelling** using a 3-asset portfolio:
 
-### 2. Risk engine (`var_es.py`)
-- Computes **historical VaR & ES** using the empirical distribution of portfolio returns.
-- Supports:
-  - arbitrary confidence levels (e.g. 95%, 99%, 99.5%)
-  - arbitrary horizons via √time scaling (1-day, 10-day, 100-day, ...)
+- **Bitcoin (BTC/EUR)**
+- **Gold (EUR)**
+- **IWDA – MSCI World ETF (EUR)**  
 
-### 3. Optimization (`optimizer.py`)
-- **ES minimization**: finds long-only weights that minimize 95% ES.  
-- **Sharpe maximization**: finds long-only weights that maximize annualized Sharpe ratio.  
-- Uses `scipy.optimize.minimize` with SLSQP under:
-  - sum of weights = 1
-  - weights ≥ 0 (long-only)
+It computes and visualizes:
 
-### 4. Monte Carlo heavy-tailed simulation (`mc_sim.py`)
-- Simulates **multivariate Student-t** returns calibrated to the historical mean and covariance matrix.
-- Degree of freedom `df` controls tail heaviness (default `df = 5`).
-- Used to study how **tail risk explodes** under heavy-tailed assumptions.
+- **Historical VaR & Expected Shortfall (ES)**
+- **Monte Carlo (Student-t) VaR & ES**
+- **ES–Sharpe efficient frontiers**
+- **Optimal portfolios**:
+  - Minimum-ES (tail-risk minimization)  
+  - Maximum-Sharpe (risk-adjusted return)
 
-### 5. Plotting (`plotting.py`)
-- `plot_portfolio_var_es`:  
-  - Histogram of portfolio returns with **VaR & ES vertical lines**.
-- `plot_sharpe_vs_es_frontier`:  
-  - ES–Sharpe frontier from random long-only portfolios in a single world (historical or simulated).
-- `plot_hist_vs_sim_frontier`:  
-  - **Historical vs Simulated** ES–Sharpe frontiers on one plot,
-    highlighting:
-    - ES-optimal portfolio (simulated)
-    - Sharpe-optimal portfolio (simulated)
-
-### 6. Orchestration (`main.py`)
-- End-to-end pipeline:
-  1. Load historical data and compute returns.
-  2. Plot historical distribution + VaR/ES.
-  3. Simulate Student-t returns.
-  4. Plot simulated distribution + VaR/ES.
-  5. Compute VaR & ES for:
-     - current weights
-     - ES-optimal weights
-     - Sharpe-optimal weights
-  6. Compare tails at **95% / 99% / 99.5%** for historical vs simulated worlds.
-  7. Plot:
-     - historical frontier
-     - simulated frontier with optimal portfolios
-     - **combined** historical vs simulated frontier.
+It also compares **historical** vs **heavy-tailed simulated** markets — showing how risk explodes when returns are not Gaussian.
 
 ---
 
+## 📌 Why This Project Matters
+
+Modern risk management (Basel III/IV) requires banks to measure market risk using **Expected Shortfall**, not VaR.
+
+This project shows:
+
+- Why ES is a superior tail-risk measure  
+- How optimal portfolios shift under heavy tails  
+- Why crypto disappears in ES-minimizing portfolios  
+- How Sharpe optimality vs ES optimality differ  
+- How Student-t simulation dramatically inflates 99%+ ES  
+- How efficient frontiers deform with fat tails  
+
+This is the type of hands-on quantitative work recruiters love to see.
+
+---
+
+# 🧩 Features
+
+## **1. Data Loader (`data_loader.py`)**
+
+- Downloads daily prices from Yahoo Finance:
+  - `BTC-EUR` — Bitcoin  
+  - `GC=F` — Gold futures (USD)  
+  - `EURUSD=X` — FX rate for conversion  
+  - `IWDA.AS` — iShares MSCI World ETF  
+- Converts Gold from USD → EUR  
+- Computes **daily log returns**  
+
+---
+
+## **2. Risk Engine (`var_es.py`)**
+
+Computes **historical VaR & ES** using empirical returns.
+
+Supports:
+
+- ✓ Any confidence levels (95%, 99%, 99.5%, …)  
+- ✓ Any horizon via √time scaling  
+- ✓ Portfolio-level VaR & ES from raw returns  
+
+---
+
+## **3. Optimizers (`optimizer.py`)**
+
+### ✔ Minimum ES Portfolio (95% ES)
+- Finds long-only weights minimizing tail risk  
+- Uses SLSQP with:
+  - weights ≥ 0  
+  - sum(weights) = 1  
+
+### ✔ Maximum Sharpe Portfolio
+- Annualized Sharpe (252-day convention)  
+- Same constraints as above  
+
+---
+
+## **4. Monte Carlo Simulation (`mc_sim.py`)**
+
+Simulates **multivariate Student-t** returns:
+
+- Calibrated to historical mean & covariance  
+- Default **df = 5** (heavy tails)  
+- Produces multiple new years of synthetic data  
+- Used to compare risk under fat-tailed markets  
+
+---
+
+## **5. Plotting (`plotting.py`)**
+
+### Histogram — VaR & ES Cutoffs
+<p align="center">
+  <img src="figures/hist_distribution.png" width="600">
+</p>
+
+### Monte Carlo VS Distribution
+<p align="center">
+  <img src="figures/sim_distribution.png" width="600">
+</p>
+
+### Historical ES–Sharpe Frontier
+<p align="center">
+  <img src="figures/frontier_historical.png" width="600">
+</p>
+
+### Simulated ES–Sharpe Frontier
+<p align="center">
+  <img src="figures/frontier_simulated.png" width="600">
+</p>
+
+### Combined Frontier Comparison
+<p align="center">
+  <img src="figures/frontier_compare.png" width="650">
+</p>
+
+---
+
+## **6. Orchestration Pipeline (`main.py`)**
+
+`main.py` ties the entire project together:
+
+1. Load historical data  
+2. Plot historical VaR/ES distribution  
+3. Simulate Student-t returns  
+4. Plot simulated VaR/ES distribution  
+5. Compute & print:
+   - Current-weight VaR/ES  
+   - ES-optimal portfolio  
+   - Sharpe-optimal portfolio  
+6. Compare tail metrics:
+   - 95% / 99% / 99.5% VaR & ES  
+   - Historical vs simulated  
+7. Plot:
+   - Historical frontier  
+   - Simulated frontier  
+   - Combined comparison frontier  
+
+Running:
+
+```bash
+python main.py
+```
 ## Project Structure
-
-```text
+```
 var_es_project/
-├─ data_loader.py       # Download prices, convert to EUR, compute log returns
-├─ var_es.py            # Historical VaR & ES calculations
-├─ optimizer.py         # ES-min and Sharpe-max optimizers
-├─ mc_sim.py            # Monte Carlo Student-t simulation
-├─ plotting.py          # Histograms, ES–Sharpe frontiers, comparison plots
-├─ config.py            # Weights, confidence levels, horizon, date range
-├─ main.py              # Orchestrates full workflow
-└─ README.md            # This file
+├── data_loader.py       # Price download, FX conversion, log returns
+├── var_es.py            # Historical VaR/ES computation
+├── optimizer.py         # ES-min & Sharpe-max optimizers
+├── mc_sim.py            # Student-t Monte Carlo simulation
+├── plotting.py          # Histograms, frontiers, comparison plots
+├── config.py            # Parameters (weights, CLs, horizon, date range)
+├── main.py              # Full pipeline
+├── figures/             # Auto-generated plots for the README
+└── README.md            # This file
+```
