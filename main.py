@@ -13,6 +13,7 @@ from plotting import (
 from optimizer import minimize_es_weights, maximize_sharpe_weights
 from config import WEIGHTS, CONF_LEVELS, HORIZON_DAYS, START_DATE, END_DATE
 from mc_sim import simulate_student_t_returns
+from ewma import ewma_var_es   # <-- NEW IMPORT
 
 
 def main():
@@ -57,7 +58,7 @@ def main():
         save_path="figures/sim_distribution.png"
     )
 
-    # 3. Risk for current weights under simulated data
+    # 3. Risk for current weights under simulated data (historical VaR/ES style)
     base_risk = portfolio_var_es(
         returns_df=returns,
         weights=WEIGHTS,
@@ -65,9 +66,33 @@ def main():
         horizon_days=HORIZON_DAYS
     )
 
-    print("Portfolio VaR & ES with current weights (simulated)")
+    print("Portfolio VaR & ES with current weights (simulated, historical method)")
     print(base_risk.to_string(float_format=lambda x: f"{x:.4%}"))
     print()
+
+    # --- 3b. EWMA risk metrics for current weights (historical + simulated) ---
+    w = np.array(WEIGHTS, dtype=float)
+    w = w / w.sum()
+
+    port_hist = returns_hist.dot(w).dropna()
+    port_sim = returns.dot(w).dropna()
+
+    # EWMA at 95% confidence, lambda 0.94
+    ewma_var_hist, ewma_es_hist, sigma_hist = ewma_var_es(
+        port_hist, alpha=0.95, lam=0.94
+    )
+    ewma_var_sim, ewma_es_sim, sigma_sim = ewma_var_es(
+        port_sim, alpha=0.95, lam=0.94
+    )
+
+    print("EWMA (RiskMetrics-style) tail risk for CURRENT weights (95%):")
+    print(f"Historical EWMA volatility: {sigma_hist:.4%}")
+    print(f"Historical EWMA VaR(95%):  {ewma_var_hist:.4%}")
+    print(f"Historical EWMA ES(95%):   {ewma_es_hist:.4%}\n")
+
+    print(f"Simulated EWMA volatility: {sigma_sim:.4%}")
+    print(f"Simulated EWMA VaR(95%):  {ewma_var_sim:.4%}")
+    print(f"Simulated EWMA ES(95%):   {ewma_es_sim:.4%}\n")
 
     # 4. ES-minimizing weights
     es_opt_res = minimize_es_weights(
@@ -79,8 +104,8 @@ def main():
     es_opt_weights = es_opt_res.x
 
     print("Optimal long-only weights to minimize 95% ES (simulated):")
-    for name, w in zip(returns.columns, es_opt_weights):
-        print(f"  {name}: {w:.2%}")
+    for name, w_i in zip(returns.columns, es_opt_weights):
+        print(f"  {name}: {w_i:.2%}")
     print()
 
     # 5. Sharpe-maximizing weights
@@ -93,8 +118,8 @@ def main():
     sharpe_opt_weights = sharpe_opt_res.x
 
     print("Sharpe-maximizing long-only weights (simulated):")
-    for name, w in zip(returns.columns, sharpe_opt_weights):
-        print(f"  {name}: {w:.2%}")
+    for name, w_i in zip(returns.columns, sharpe_opt_weights):
+        print(f"  {name}: {w_i:.2%}")
     print(f"Annualized Sharpe: {sharpe_opt_res.sharpe_annual:.3f}\n")
 
     # --- Visual 3: historical ES–Sharpe frontier ---

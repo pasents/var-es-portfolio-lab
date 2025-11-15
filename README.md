@@ -1,165 +1,143 @@
-# 📊 VaR & Expected Shortfall Portfolio Lab
-*A quantitative risk-modelling project comparing historical vs heavy-tailed Monte Carlo tail risk.*
+# **Market Risk Modelling: VaR, Expected Shortfall, EWMA & Backtesting**
 
-<p align="center">
+This repository implements a complete market-risk workflow for a three-asset portfolio consisting of **BTC/EUR**, **Gold (EUR)**, and **IWDA (MSCI World, EUR)**. The project covers:
+
+- Historical and Monte Carlo (Student-t) **Value-at-Risk (VaR)** and **Expected Shortfall (ES)**  
+- **EWMA (RiskMetrics)** volatility, VaR and ES  
+- **Portfolio optimisation** under tail-risk (ES-minimisation) and risk-adjusted return (Sharpe maximisation)  
+- **Backtesting** using industry-standard statistical tests:
+  - Kupiec POF (Unconditional Coverage)  
+  - Christoffersen Independence & Conditional Coverage  
+  - Acerbi–Szekely ES Backtest  
+
+All results are visualised with efficient frontiers, distribution plots, and model validation summaries.
+
+---
+
+## **1. Objectives**
+
+This project was developed to demonstrate key market-risk concepts used in trading desks, risk control units, and regulatory reporting:
+
+- Behaviour of tail-risk under different distributional assumptions  
+- Sensitivity of portfolio construction to ES vs Sharpe objectives  
+- Comparison of **historical** vs **heavy-tailed** return environments  
+- Statistical validation of risk measures under **Basel backtesting frameworks**  
+
+The implementation is intentionally transparent and designed for auditability, teaching, and research.
+
+---
+
+## **2. Methodology Overview**
+
+### **Historical Risk**
+- Empirical VaR/ES from daily log returns  
+- Multiple confidence levels (95%, 99%, 99.5%)  
+- Horizon scaling via √time  
+
+### **EWMA (RiskMetrics)**
+- λ = 0.94 daily decay parameter  
+- Dynamic volatility estimates  
+- Parametric VaR/ES under conditional normality  
+
+### **Monte Carlo (Student-t) Simulation**
+- Multivariate Student-t with ν = 5 degrees of freedom  
+- Calibrated to historical mean + covariance  
+- Generates heavy-tailed stress scenarios  
+- Used to compute VaR/ES and efficient frontiers in a “fat-tail world”  
+
+### **Portfolio Optimisation**
+- **ES-minimisation:** robust tail-risk portfolio  
+- **Sharpe maximisation:** classical mean–variance strategy  
+- Long-only constraints with weights summing to 1  
+
+### **Backtesting**
+Performed on rolling 250-day VaR/ES forecasts at 99% confidence:
+
+| Test | Purpose | Interpretation |
+|------|---------|----------------|
+| **Kupiec POF** | Frequency of VaR breaches | Checks unconditional accuracy |
+| **Christoffersen** | Clustering of breaches | Tests independence & conditional coverage |
+| **Acerbi–Szekely** | ES accuracy | Detects ES underestimation |
+
+---
+
+## **3. Key Results (Summary)**
+
+### **Backtesting Outcomes (99% level)**
+
+- **Kupiec POF:**  
+  - p-value ≈ 0.26 → *unconditional coverage not rejected*  
+
+- **Christoffersen Independence:**  
+  - p-value ≈ 0.03 → *breaches show time clustering*  
+
+- **Christoffersen Conditional Coverage:**  
+  - p-value ≈ 0.04 → *model fails joint conditional coverage*  
+
+- **Acerbi–Szekely ES Backtest:**  
+  - p-value ≈ 0.18 → *no evidence of ES underestimation*  
+
+**Interpretation:**  
+The historical VaR/ES model is *accurate on average*, but *slow to react to volatility regime shifts* — consistent with real-world model risk. Heavy-tailed simulation further emphasises structural tail-risk understatement under classical assumptions.
+
+---
+
+## **4. Figures**
+
+All figures are generated automatically and stored in `figures/`.
+
+<div align="center">
   <img src="figures/frontier_compare.png" width="650">
-</p>
+</div>
+
+Additional figures include:
+
+- Historical vs Simulated return distributions  
+- Historical ES–Sharpe frontier  
+- Simulated ES–Sharpe frontier  
+- Combined frontier comparison  
 
 ---
 
-## 🎯 Overview
+## **5. Project Architecture**
 
-This project demonstrates practical **market risk modelling** using a 3-asset portfolio:
+```
+var_es_project/
+├── config.py              # Parameters (weights, CLs, horizon, date range)
+├── data_loader.py         # Price download, FX conversion, log returns
+├── var_es.py              # Historical VaR/ES computation
+├── ewma.py                # EWMA volatility, VaR & ES
+├── optimizer.py           # ES-min and Sharpe-max optimizers
+├── mc_sim.py              # Student-t Monte Carlo simulation
+├── plotting.py            # Histograms, frontiers, comparison plots
+├── main.py                # Full orchestrated pipeline
+│
+├── assumptions/           # Backtesting & econometric tests
+│   ├── backtesting.py         # Rolling VaR/ES, Kupiec, Christoffersen, Acerbi–Szekely
+│   ├── run_kupiec.py          # Runs Kupiec POF test
+│   ├── run_christoffersen.py  # Runs independence & conditional coverage tests
+│   └── run_acerbi_szekely.py  # Runs ES backtest
+│
+├── figures/               # Auto-generated plots for the README
+│   ├── hist_distribution.png
+│   ├── sim_distribution.png
+│   ├── frontier_historical.png
+│   ├── frontier_simulated.png
+│   └── frontier_compare.png
+│
+├── requirements.txt
+└── README.md
+```
+## **6. Running the Pipeline**
 
-- **Bitcoin (BTC/EUR)**
-- **Gold (EUR)**
-- **IWDA – MSCI World ETF (EUR)**  
-
-It computes and visualizes:
-
-- **Historical VaR & Expected Shortfall (ES)**
-- **Monte Carlo (Student-t) VaR & ES**
-- **ES–Sharpe efficient frontiers**
-- **Optimal portfolios**:
-  - Minimum-ES (tail-risk minimization)  
-  - Maximum-Sharpe (risk-adjusted return)
-
-It also compares **historical** vs **heavy-tailed simulated** markets — showing how risk explodes when returns are not Gaussian.
-
----
-
-## 📌 Why This Project Matters
-
-Modern risk management (Basel III/IV) requires banks to measure market risk using **Expected Shortfall**, not VaR.
-
-This project shows:
-
-- Why ES is a superior tail-risk measure  
-- How optimal portfolios shift under heavy tails  
-- Why crypto disappears in ES-minimizing portfolios  
-- How Sharpe optimality vs ES optimality differ  
-- How Student-t simulation dramatically inflates 99%+ ES  
-- How efficient frontiers deform with fat tails  
-
-This is the type of hands-on quantitative work recruiters love to see.
-
----
-
-# 🧩 Features
-
-## **1. Data Loader (`data_loader.py`)**
-
-- Downloads daily prices from Yahoo Finance:
-  - `BTC-EUR` — Bitcoin  
-  - `GC=F` — Gold futures (USD)  
-  - `EURUSD=X` — FX rate for conversion  
-  - `IWDA.AS` — iShares MSCI World ETF  
-- Converts Gold from USD → EUR  
-- Computes **daily log returns**  
-
----
-
-## **2. Risk Engine (`var_es.py`)**
-
-Computes **historical VaR & ES** using empirical returns.
-
-Supports:
-
-- ✓ Any confidence levels (95%, 99%, 99.5%, …)  
-- ✓ Any horizon via √time scaling  
-- ✓ Portfolio-level VaR & ES from raw returns  
-
----
-
-## **3. Optimizers (`optimizer.py`)**
-
-### ✔ Minimum ES Portfolio (95% ES)
-- Finds long-only weights minimizing tail risk  
-- Uses SLSQP with:
-  - weights ≥ 0  
-  - sum(weights) = 1  
-
-### ✔ Maximum Sharpe Portfolio
-- Annualized Sharpe (252-day convention)  
-- Same constraints as above  
-
----
-
-## **4. Monte Carlo Simulation (`mc_sim.py`)**
-
-Simulates **multivariate Student-t** returns:
-
-- Calibrated to historical mean & covariance  
-- Default **df = 5** (heavy tails)  
-- Produces multiple new years of synthetic data  
-- Used to compare risk under fat-tailed markets  
-
----
-
-## **5. Plotting (`plotting.py`)**
-
-### Histogram — VaR & ES Cutoffs
-<p align="center">
-  <img src="figures/hist_distribution.png" width="600">
-</p>
-
-### Monte Carlo VS Distribution
-<p align="center">
-  <img src="figures/sim_distribution.png" width="600">
-</p>
-
-### Historical ES–Sharpe Frontier
-<p align="center">
-  <img src="figures/frontier_historical.png" width="600">
-</p>
-
-### Simulated ES–Sharpe Frontier
-<p align="center">
-  <img src="figures/frontier_simulated.png" width="600">
-</p>
-
-### Combined Frontier Comparison
-<p align="center">
-  <img src="figures/frontier_compare.png" width="650">
-</p>
-
----
-
-## **6. Orchestration Pipeline (`main.py`)**
-
-`main.py` ties the entire project together:
-
-1. Load historical data  
-2. Plot historical VaR/ES distribution  
-3. Simulate Student-t returns  
-4. Plot simulated VaR/ES distribution  
-5. Compute & print:
-   - Current-weight VaR/ES  
-   - ES-optimal portfolio  
-   - Sharpe-optimal portfolio  
-6. Compare tail metrics:
-   - 95% / 99% / 99.5% VaR & ES  
-   - Historical vs simulated  
-7. Plot:
-   - Historical frontier  
-   - Simulated frontier  
-   - Combined comparison frontier  
-
-Running:
+### Full analysis (historical + MC + EWMA + plots):
 
 ```bash
 python main.py
 ```
-## Project Structure
-```
-var_es_project/
-├── data_loader.py       # Price download, FX conversion, log returns
-├── var_es.py            # Historical VaR/ES computation
-├── optimizer.py         # ES-min & Sharpe-max optimizers
-├── mc_sim.py            # Student-t Monte Carlo simulation
-├── plotting.py          # Histograms, frontiers, comparison plots
-├── config.py            # Parameters (weights, CLs, horizon, date range)
-├── main.py              # Full pipeline
-├── figures/             # Auto-generated plots for the README
-└── README.md            # This file
+### Individual backtest scripts:
+```bash
+python assumptions/run_kupiec.py
+python assumptions/run_christoffersen.py
+python assumptions/run_acerbi_szekely.py
 ```
