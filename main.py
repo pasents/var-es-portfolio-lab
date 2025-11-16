@@ -18,7 +18,7 @@ from ewma import ewma_var_es   # <-- NEW IMPORT
 
 def main():
     # Optional: reproducible simulation
-    np.random.seed(42)
+    #np.random.seed(42)
 
     # Ensure figures directory exists
     os.makedirs("figures", exist_ok=True)
